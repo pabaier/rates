@@ -1,71 +1,25 @@
 from datetime import datetime, timedelta
 
-import psycopg2
 from flask import Flask, request
 
+from db import DB
+
 app = Flask(__name__)
+db = DB('localhost', 'postgres', 'postgres', 'ratestask')
 
 
-def get_db_connection():
-    conn = psycopg2.connect(host='localhost',
-                            database='postgres',
-                            user='postgres',  # os.environ['postgres'],
-                            password='ratestask')  # os.environ['DB_PASSWORD'])
-    return conn
-
-
-# ------------ DB ------------------------------------------------------
-def get_child_port_codes(parent_region, conn):
-    cur = conn.cursor()
-    sql = """SELECT p.code FROM ports p WHERE p.parent_slug = %s;"""
-    cur.execute(sql, (parent_region,))
-    ports = cur.fetchall()
-    cur.close()
-    return [port[0] for port in ports]
-
-
-def get_child_region_slugs(parent_region, conn):
-    cur = conn.cursor()
-    sql = """SELECT r.slug FROM regions r WHERE r.parent_slug = %s;"""
-    cur.execute(sql, (parent_region,))
-    regions = cur.fetchall()
-    cur.close()
-    return [region[0] for region in regions]
-
-
-def get_daily_prices(orig_code, dest_code, day, conn):
-    cur = conn.cursor()
-    sql = """SELECT p.price FROM public.prices p
-             WHERE p.orig_code = %s AND p.dest_code = %s AND p."day" = %s;"""
-    cur.execute(sql, (orig_code, dest_code, day))
-    prices = cur.fetchall()
-    cur.close()
-    return [price[0] for price in prices]
-
-
-def get_port(orig_code, conn):
-    cur = conn.cursor()
-    sql = """SELECT p.code FROM ports p
-                where p.code = %s"""
-    cur.execute(sql, (orig_code,))
-    port = cur.fetchone()
-    cur.close()
-    return port
-
-# ----------------------------------------------------------------------
-
-def get_sub_ports(region, conn):
+def get_sub_ports(region):
     ports = []
     regions_left = [region]
     while len(regions_left) > 0:
         next_region = regions_left.pop(0)
 
         # get the region's ports
-        region_ports = get_child_port_codes(next_region, conn)
+        region_ports = db.get_child_port_codes(next_region)
         ports += region_ports
 
         # get the region's child regions
-        child_regions = get_child_region_slugs(next_region, conn)
+        child_regions = db.get_child_region_slugs(next_region)
         regions_left += child_regions
 
     return ports
@@ -82,7 +36,6 @@ def base():
     Get all origin and destination ports
     Get prices between each origin and destination port
     """
-    conn = get_db_connection()
 
     # get query params
     date_from = request.args.get('date_from')
@@ -118,14 +71,14 @@ def base():
 
     # make sure origin and destination are valid ports (if they are ports)
     # we can filter out if they are bad region values based on their sub region/ports below
-    if origin_is_port and not get_port(origin, conn):
+    if origin_is_port and not db.get_port(origin):
         return {"error": f"invalid origin port {origin}"}, 400
-    if destination_is_port and not get_port(destination, conn):
+    if destination_is_port and not db.get_port(destination):
         return {"error": f"invalid destination port {destination}"}, 400
 
     # get ports
-    origin_ports = [origin] if origin.isupper() else get_sub_ports(origin, conn)
-    destination_ports = [destination] if destination.isupper() else get_sub_ports(destination, conn)
+    origin_ports = [origin] if origin.isupper() else get_sub_ports(origin)
+    destination_ports = [destination] if destination.isupper() else get_sub_ports(destination)
 
     if not origin_ports:
         return {"error": f"invalid origin port {origin}"}, 400
@@ -139,15 +92,15 @@ def base():
         prices = []
         for origin_port in origin_ports:
             for destination_port in destination_ports:
-                prices += get_daily_prices(origin_port, destination_port, date_string, conn)
+                prices += db.get_daily_prices(origin_port, destination_port, date_string)
         results.append({
             "day": date_string,
             "average_price": None if len(prices) < 3 else round(sum(prices) / len(prices))
         })
 
-    conn.close()
     return results
 
 
 if __name__ == '__main__':
     app.run(host="localhost", port=8080, debug=True)
+    db.close()
