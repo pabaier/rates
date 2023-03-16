@@ -2,13 +2,18 @@ from datetime import datetime, timedelta
 
 from flask import Flask, request
 
-from db import DB
+from database import DB
 
 app = Flask(__name__)
 db = DB('localhost', 'postgres', 'postgres', 'ratestask')
 
 
 def get_sub_ports(region):
+    """
+    gets all the ports within a region
+    :param region: region slug
+    :return: list of port codes
+    """
     ports = []
     regions_left = [region]
     while len(regions_left) > 0:
@@ -25,8 +30,31 @@ def get_sub_ports(region):
     return ports
 
 
+def create_date_range(date_from, date_to):
+    """
+    creates a list of dates of each day between [date_from and date_to] (inclusive)
+    :param date_from: start date
+    :param date_to: end date
+    :return: dictionary of {error: bool, value}
+    """
+    try:
+        date_start = datetime.strptime(date_from, '%Y-%m-%d')
+    except ValueError:
+        return {"error": True, "value": ({"error": "date_from incorrect range or format. Make sure it is formatted YYYY-MM-DD"}, 400)}
+    except Exception as e:
+        return {"error": True, "value": ({"error": f"date_from error: {str(e)}"}, 400)}
+    try:
+        date_end = datetime.strptime(date_to, '%Y-%m-%d')
+    except ValueError:
+        return {"error": True, "value": ({"error": "date_to incorrect range or format. Make sure it is formatted YYYY-MM-DD"}, 400)}
+    except Exception as e:
+        return {"error": True, "value": ({"error": f"date_to error: {str(e)}"}, 400)}
+    dates = [date_start + timedelta(days=days) for days in range((date_end - date_start).days + 1)]
+    return {"error": False, "value": dates}
+
+
 @app.route("/rates")
-def base():
+def rates():
     """
     Gets the average price per day between an origin and destination for a specified date range
 
@@ -52,19 +80,8 @@ def base():
         return {"error": "destination param required"}, 400
 
     # get date range
-    try:
-        date_start = datetime.strptime(date_from, '%Y-%m-%d')
-    except ValueError:
-        return {"error": "date_from incorrect range or format. Make sure it is formatted YYYY-MM-DD"}, 400
-    except Exception as e:
-        return {"error": f"date_from error: {str(e)}"}, 400
-    try:
-        date_end = datetime.strptime(date_to, '%Y-%m-%d')
-    except ValueError:
-        return {"error": "date_to incorrect range or format. Make sure it is formatted YYYY-MM-DD"}, 400
-    except Exception as e:
-        return {"error": f"date_to error: {str(e)}"}, 400
-    dates = [date_start + timedelta(days=days) for days in range((date_end - date_start).days + 1)]
+    dates_range = create_date_range(date_from, date_to)
+    if dates_range['error']: return dates_range['value']
 
     origin_is_port = origin.isupper()
     destination_is_port = destination.isupper()
@@ -80,13 +97,14 @@ def base():
     origin_ports = [origin] if origin.isupper() else get_sub_ports(origin)
     destination_ports = [destination] if destination.isupper() else get_sub_ports(destination)
 
+    # get_sub_ports returns nothing, which means the origin/destination region was bad
     if not origin_ports:
-        return {"error": f"invalid origin port {origin}"}, 400
+        return {"error": f"invalid origin region {origin}"}, 400
     if not destination_ports:
-        return {"error": f"invalid destination port {destination}"}, 400
+        return {"error": f"invalid destination region {destination}"}, 400
 
     results = []
-    for date in dates:
+    for date in dates_range['value']:
         # for any given day, add up all the prices between all the origin and destination ports
         date_string = date.strftime('%Y-%m-%d')
         prices = []
