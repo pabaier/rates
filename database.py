@@ -26,7 +26,7 @@ class DB:
 
     def get_daily_prices(self, orig_code, dest_code, day):
         cur = self.conn.cursor()
-        sql = """SELECT p.price FROM public.prices p
+        sql = """SELECT p.price FROM prices p
                  WHERE p.orig_code = %s AND p.dest_code = %s AND p."day" = %s;"""
         cur.execute(sql, (orig_code, dest_code, day))
         prices = cur.fetchall()
