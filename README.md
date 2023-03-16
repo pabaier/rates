@@ -8,6 +8,14 @@ pip install -r requirements.txt
 ```
 # Notes
 * this solution assumes a region and port can have only one parent region
-  (a safe assumtion given they are primary keys in their tables)
+  (a safe assumption given they are primary keys in their tables)
 * it also distinguishes between port codes and region slugs by checking isupper(), where True means port
 # Run
+```commandline
+python -m server.py
+```
+
+# Test
+```commandline
+python -m unittest -v Test
+```
