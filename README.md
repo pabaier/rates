@@ -8,24 +8,33 @@ pip install -r requirements.txt
 ```
 
 # Run
+### Database
+```commandline
+docker build -t ratestask .
+docker run -p 0.0.0.0:5432:5432 --name ratestask ratestask
+```
+
+### Server
 ```commandline
 python -m server
 ```
 
-### Sample cURL
+
+
+### Sample Request
 ```commandline
 curl --request GET \
   --url 'http://localhost:8080/rates?date_from=2016-01-01&date_to=2016-01-10&origin=CNSGH&destination=north_europe_main'
 ```
 
-# Notes
+### Notes
 * server runs on localhost, port 8080
-* it uses the test database from the assignment
+* it uses the test dockerfile and database from the assignment
 * requires environment variables found in `.env` file
 * this solution assumes a region and port can have only one parent region
   (a safe assumption given they are primary keys in their tables)
 * it also distinguishes between port codes and region slugs by checking `isupper()`, where `True` indicates port
-* indexes should be added in the database
+* indexes should be added in the database (these indexes have been added to the `rates.sql` file)
   * on the `parent_slug` field on the `ports` table
   * on the `parent_slug` field on the `regions` table
   * on the `(orig_code, dest_code, day)` fields on the `prices` table

@@ -13,7 +13,7 @@ db_password = os.environ['DB_PASSWORD']
 db_host = os.environ['DB_HOST']
 db_database = os.environ['DB_DATABASE']
 
-db = DB(db_host, db_database, db_user, db_password)
+db = None
 
 
 def get_sub_ports(region: str) -> list:
@@ -38,7 +38,7 @@ def get_sub_ports(region: str) -> list:
     return ports
 
 
-def create_date_range(date_from: str, date_to: str) -> {"error": bool, "value": list | tuple}:
+def create_date_range(date_from: str, date_to: str) -> dict:
     """
     creates a list of dates of each day between [date_from and date_to] (inclusive)
     :param date_from: start date
@@ -130,5 +130,6 @@ def rates():
 
 
 if __name__ == '__main__':
+    db = DB(db_host, db_database, db_user, db_password)
     app.run(host="localhost", port=8080, debug=True)
     db.close()
