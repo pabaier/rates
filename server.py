@@ -1,11 +1,19 @@
+import os
 from datetime import datetime, timedelta
 
+from dotenv import load_dotenv
 from flask import Flask, request
 
 from database import DB
 
 app = Flask(__name__)
-db = DB('localhost', 'postgres', 'postgres', 'ratestask')
+load_dotenv()
+db_user = os.environ['DB_USER']
+db_password = os.environ['DB_PASSWORD']
+db_host = os.environ['DB_HOST']
+db_database = os.environ['DB_DATABASE']
+
+db = DB(db_host, db_database, db_user, db_password)
 
 
 def get_sub_ports(region):
@@ -40,13 +48,15 @@ def create_date_range(date_from, date_to):
     try:
         date_start = datetime.strptime(date_from, '%Y-%m-%d')
     except ValueError:
-        return {"error": True, "value": ({"error": "date_from incorrect range or format. Make sure it is formatted YYYY-MM-DD"}, 400)}
+        return {"error": True,
+                "value": ({"error": "date_from incorrect range or format. Make sure it is formatted YYYY-MM-DD"}, 400)}
     except Exception as e:
         return {"error": True, "value": ({"error": f"date_from error: {str(e)}"}, 400)}
     try:
         date_end = datetime.strptime(date_to, '%Y-%m-%d')
     except ValueError:
-        return {"error": True, "value": ({"error": "date_to incorrect range or format. Make sure it is formatted YYYY-MM-DD"}, 400)}
+        return {"error": True,
+                "value": ({"error": "date_to incorrect range or format. Make sure it is formatted YYYY-MM-DD"}, 400)}
     except Exception as e:
         return {"error": True, "value": ({"error": f"date_to error: {str(e)}"}, 400)}
     dates = [date_start + timedelta(days=days) for days in range((date_end - date_start).days + 1)]

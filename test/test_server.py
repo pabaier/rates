@@ -1,7 +1,7 @@
 import unittest
 
 from unittest.mock import patch
-from mock_database import MockDB
+from test.mock_database import MockDB
 from server import app
 
 

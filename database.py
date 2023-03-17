@@ -5,8 +5,8 @@ class DB:
     def __init__(self, host, database, user, password):
         self.conn = psycopg2.connect(host=host,
                                      database=database,
-                                     user=user,  # os.environ['postgres'],
-                                     password=password)  # os.environ['DB_PASSWORD'])
+                                     user=user,
+                                     password=password)
 
     def get_child_port_codes(self, parent_region):
         cur = self.conn.cursor()
