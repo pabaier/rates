@@ -9,14 +9,6 @@ mock_db = MockDB()
 
 @patch('server.db', mock_db)
 class TestServer(unittest.TestCase):
-    # test excluded query params
-    #   date_from
-    #   date_to
-    #   origin
-    #   destination
-
-    # test bad origin port name
-    # test bad destination port name
 
     def test_origin_and_dest_ports(self):
         # arrange
@@ -138,6 +130,66 @@ class TestServer(unittest.TestCase):
         expected = [{'average_price': 123, 'day': '2016-01-01'}, {'average_price': None, 'day': '2016-01-02'}, {'average_price': 790, 'day': '2016-01-03'}]
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json, expected)
+
+    def test_bad_origin_port_query_param(self):
+        # arrange
+        origin_port = "ABCD"
+        destination_port = "VWXYZ"
+        start_date="2016-01-01"
+        end_date = "2016-01-03"
+
+        mock_db.set_port(lambda x: True if x == "ABCDE" else False) # ABCDE is only acceptable port
+        # mock_db.set_child_port_codes() # not used
+        # mock_db.set_child_region_slugs() # not used
+        # mock_db.set_daily_prices() # not used
+
+        # act
+        response = app.test_client().get(f'/rates?date_from={start_date}&date_to={end_date}&origin={origin_port}&destination={destination_port}')
+
+        # assert
+        expected = {'error': f'invalid origin port {origin_port}'}
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json, expected)
+
+    def test_bad_dest_port_query_param(self):
+        # arrange
+        origin_port = "ABCDE"
+        destination_port = "VWXY"
+        start_date="2016-01-01"
+        end_date = "2016-01-03"
+
+        mock_db.set_port(lambda x: True if x == "ABCDE" else False) # ABCDE is only acceptable port
+        # mock_db.set_child_port_codes() # not used
+        # mock_db.set_child_region_slugs() # not used
+        # mock_db.set_daily_prices() # not used
+
+        # act
+        response = app.test_client().get(f'/rates?date_from={start_date}&date_to={end_date}&origin={origin_port}&destination={destination_port}')
+
+        # assert
+        expected = {'error': f'invalid destination port {destination_port}'}
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json, expected)
+
+    def test_missing_query_param(self):
+        # arrange
+        missing_origin = f'/rates?date_from=2016-01-01&date_to=2016-01-10&destination=VWXYZ'
+        missing_dest = f'/rates?date_from=2016-01-01&date_to=2016-01-10&origin=ABCDE'
+        missing_from_date = f'/rates?date_to=2016-01-10&origin=ABCDE&destination=VWXYZ'
+        missing_to_date = f'/rates?date_from=2016-01-01&origin=ABCDE&destination=VWXYZ'
+        tests = [(missing_origin, "origin"),
+                 (missing_dest, "destination"),
+                 (missing_from_date, "date_from"),
+                 (missing_to_date, "date_to")]
+
+        for test, param in tests:
+            # act
+            response = app.test_client().get(test)
+
+            # assert
+            expected = {"error": f"{param} param required"}
+            self.assertEqual(response.status_code, 400)
+            self.assertEqual(response.json, expected)
 
 
 if __name__ == '__main__':
