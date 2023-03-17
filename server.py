@@ -16,7 +16,7 @@ db_database = os.environ['DB_DATABASE']
 db = DB(db_host, db_database, db_user, db_password)
 
 
-def get_sub_ports(region):
+def get_sub_ports(region: str) -> list:
     """
     gets all the ports within a region
     :param region: region slug
@@ -38,7 +38,7 @@ def get_sub_ports(region):
     return ports
 
 
-def create_date_range(date_from, date_to):
+def create_date_range(date_from: str, date_to: str) -> {"error": bool, "value": list | tuple}:
     """
     creates a list of dates of each day between [date_from and date_to] (inclusive)
     :param date_from: start date

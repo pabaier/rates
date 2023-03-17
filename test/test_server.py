@@ -24,7 +24,7 @@ class TestServer(unittest.TestCase):
                 case "2016-01-03": return [789, 790, 791, 792]
                 case _: return [701]
 
-        mock_db.set_port(lambda x: True) # inputs are ports
+        mock_db.set_port(lambda x: (True,)) # inputs are ports
         # mock_db.set_child_port_codes() # not used
         # mock_db.set_child_region_slugs() # not used
         mock_db.set_daily_prices(daily_prices_func)
@@ -51,7 +51,7 @@ class TestServer(unittest.TestCase):
                 case "ABCDE", "VWXYZ", "2016-01-03": return [789, 790, 791, 792]
                 case _: return [701]
 
-        mock_db.set_port(lambda x: True) # input is port
+        mock_db.set_port(lambda x: (True,)) # input is port
         mock_db.set_child_port_codes(lambda x: ["VWXYZ"]) # only port in a_region is VWXYZ
         mock_db.set_child_region_slugs(lambda x: []) # not child regions in region
         mock_db.set_daily_prices(daily_prices_func)
@@ -78,7 +78,7 @@ class TestServer(unittest.TestCase):
                 case "ABCDE", "VWXYZ", "2016-01-03": return [789, 790, 791, 792]
                 case _: return [701]
 
-        mock_db.set_port(lambda x: True) # input is port
+        mock_db.set_port(lambda x: (True,)) # input is port
         mock_db.set_child_port_codes(lambda x: ["ABCDE"]) # only port in a_region is ABCDE
         mock_db.set_child_region_slugs(lambda x: []) # not child regions in region
         mock_db.set_daily_prices(daily_prices_func)
@@ -118,7 +118,7 @@ class TestServer(unittest.TestCase):
                 case "ABCDE", "PQRST", "2016-01-03": return [789, 790, 791, 792]
                 case _: return []
 
-        mock_db.set_port(lambda x: True) # input is port (not used)
+        mock_db.set_port(lambda x: (True,)) # input is port (not used)
         mock_db.set_child_port_codes(child_ports_func)
         mock_db.set_child_region_slugs(child_region_func)
         mock_db.set_daily_prices(daily_prices_func)
@@ -138,7 +138,7 @@ class TestServer(unittest.TestCase):
         start_date="2016-01-01"
         end_date = "2016-01-03"
 
-        mock_db.set_port(lambda x: True if x == "ABCDE" else False) # ABCDE is only acceptable port
+        mock_db.set_port(lambda x: (True,) if x == "ABCDE" else None) # ABCDE is only acceptable port
         # mock_db.set_child_port_codes() # not used
         # mock_db.set_child_region_slugs() # not used
         # mock_db.set_daily_prices() # not used
@@ -158,7 +158,7 @@ class TestServer(unittest.TestCase):
         start_date="2016-01-01"
         end_date = "2016-01-03"
 
-        mock_db.set_port(lambda x: True if x == "ABCDE" else False) # ABCDE is only acceptable port
+        mock_db.set_port(lambda x: (True,) if x == "ABCDE" else None) # ABCDE is only acceptable port
         # mock_db.set_child_port_codes() # not used
         # mock_db.set_child_region_slugs() # not used
         # mock_db.set_daily_prices() # not used

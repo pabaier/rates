@@ -1,5 +1,5 @@
 # Setup
-* python v3.10 required (for match statements in unit tests)
+* python >v3.10 required
 * create virtual env
 ```commandline
 python3 -m venv venv
