@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 
 from dotenv import load_dotenv
 from flask import Flask, request
+from werkzeug.datastructures import MultiDict
 
 from database import DB
 
@@ -48,19 +49,39 @@ def create_date_range(date_from: str, date_to: str) -> dict:
     try:
         date_start = datetime.strptime(date_from, '%Y-%m-%d')
     except ValueError:
-        return {"error": True,
-                "value": ({"error": "date_from incorrect range or format. Make sure it is formatted YYYY-MM-DD"}, 400)}
+        return {"error": True, "value": "date_from incorrect range or format. Make sure it is formatted YYYY-MM-DD"}
     except Exception as e:
-        return {"error": True, "value": ({"error": f"date_from error: {str(e)}"}, 400)}
+        return {"error": True, "value": f"date_from error: {str(e)}"}
     try:
         date_end = datetime.strptime(date_to, '%Y-%m-%d')
     except ValueError:
-        return {"error": True,
-                "value": ({"error": "date_to incorrect range or format. Make sure it is formatted YYYY-MM-DD"}, 400)}
+        return {"error": True, "value": "date_to incorrect range or format. Make sure it is formatted YYYY-MM-DD"}
     except Exception as e:
-        return {"error": True, "value": ({"error": f"date_to error: {str(e)}"}, 400)}
+        return {"error": True, "value": f"date_to error: {str(e)}"}
     dates = [date_start + timedelta(days=days) for days in range((date_end - date_start).days + 1)]
     return {"error": False, "value": dates}
+
+
+def process_query_params(args: MultiDict[str, str]) -> (str, str, str, str, str):
+    """
+    processes the request's query parameters
+    :param args: query parameters
+    :return: errors, date_from value, date_to value, origin value, destination value
+    """
+    err = []
+    date_from = args.get('date_from')
+    if not date_from:
+        err.append('date_from')
+    date_to = args.get('date_to')
+    if not date_to:
+        err.append('date_to')
+    origin = args.get('origin')
+    if not origin:
+        err.append('origin')
+    destination = args.get('destination')
+    if not destination:
+        err.append('destination')
+    return err, date_from, date_to, origin, destination
 
 
 @app.route("/rates")
@@ -75,23 +96,13 @@ def rates():
     Get prices between each origin and destination port
     """
 
-    # get query params
-    date_from = request.args.get('date_from')
-    if not date_from:
-        return {"error": "date_from param required"}, 400
-    date_to = request.args.get('date_to')
-    if not date_to:
-        return {"error": "date_to param required"}, 400
-    origin = request.args.get('origin')
-    if not origin:
-        return {"error": "origin param required"}, 400
-    destination = request.args.get('destination')
-    if not destination:
-        return {"error": "destination param required"}, 400
+    query_err, date_from, date_to, origin, destination = process_query_params(request.args)
+    if query_err:
+        return {"error": f"{query_err} params required"}, 400
 
     # get date range
     dates_range = create_date_range(date_from, date_to)
-    if dates_range['error']: return dates_range['value']
+    if dates_range['error']: return {"error": dates_range['value']}, 400
 
     origin_is_port = origin.isupper()
     destination_is_port = destination.isupper()
@@ -104,8 +115,8 @@ def rates():
         return {"error": f"invalid destination port {destination}"}, 400
 
     # get ports
-    origin_ports = [origin] if origin.isupper() else get_sub_ports(origin)
-    destination_ports = [destination] if destination.isupper() else get_sub_ports(destination)
+    origin_ports = [origin] if origin_is_port else get_sub_ports(origin)
+    destination_ports = [destination] if destination_is_port else get_sub_ports(destination)
 
     # get_sub_ports returns nothing, which means the origin/destination region was bad
     if not origin_ports:

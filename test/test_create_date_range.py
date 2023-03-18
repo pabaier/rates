@@ -7,8 +7,7 @@ from server import create_date_range
 class TestCreateDateRange(unittest.TestCase):
 
     def setUp(self) -> None:
-        self.error = lambda field: (
-        {"error": f"{field} incorrect range or format. Make sure it is formatted YYYY-MM-DD"}, 400)
+        self.error = lambda field: (f"{field} incorrect range or format. Make sure it is formatted YYYY-MM-DD")
 
     def test_correctly_create_date_range(self):
         res = create_date_range("2016-01-01", "2016-01-10")
