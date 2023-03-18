@@ -187,7 +187,7 @@ class TestServer(unittest.TestCase):
             response = app.test_client().get(test)
 
             # assert
-            expected = {"error": f"{param} param required"}
+            expected = {"error": f"{[param]} params required"}
             self.assertEqual(response.status_code, 400)
             self.assertEqual(response.json, expected)
 
