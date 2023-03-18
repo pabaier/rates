@@ -1,11 +1,11 @@
 import unittest
 
-from unittest.mock import patch
-from test.mock_database import MockDB
+from unittest.mock import patch, MagicMock
+from database import DB
 from server import app
 
-
-mock_db = MockDB()
+DB.__init__ = lambda x: None
+mock_db = DB()
 
 @patch('server.db', mock_db)
 class TestServer(unittest.TestCase):
@@ -24,10 +24,8 @@ class TestServer(unittest.TestCase):
                 case "2016-01-03": return [789, 790, 791, 792]
                 case _: return [701]
 
-        mock_db.set_port(lambda x: (True,)) # inputs are ports
-        # mock_db.set_child_port_codes() # not used
-        # mock_db.set_child_region_slugs() # not used
-        mock_db.set_daily_prices(daily_prices_func)
+        mock_db.get_daily_prices = MagicMock(side_effect=daily_prices_func)
+        mock_db.get_port = MagicMock(return_value=(True,))
 
         # act
         response = app.test_client().get(f'/rates?date_from={start_date}&date_to={end_date}&origin={origin_port}&destination={destination_port}')
@@ -51,10 +49,10 @@ class TestServer(unittest.TestCase):
                 case "ABCDE", "VWXYZ", "2016-01-03": return [789, 790, 791, 792]
                 case _: return [701]
 
-        mock_db.set_port(lambda x: (True,)) # input is port
-        mock_db.set_child_port_codes(lambda x: ["VWXYZ"]) # only port in a_region is VWXYZ
-        mock_db.set_child_region_slugs(lambda x: []) # not child regions in region
-        mock_db.set_daily_prices(daily_prices_func)
+        mock_db.get_daily_prices = MagicMock(side_effect=daily_prices_func)
+        mock_db.get_child_port_codes = MagicMock(return_value=["VWXYZ"])
+        mock_db.get_child_region_slugs = MagicMock(return_value=[])
+        mock_db.get_port = MagicMock(return_value=(True,))
 
         # act
         response = app.test_client().get(f'/rates?date_from={start_date}&date_to={end_date}&origin={origin_port}&destination={destination_region}')
@@ -78,10 +76,10 @@ class TestServer(unittest.TestCase):
                 case "ABCDE", "VWXYZ", "2016-01-03": return [789, 790, 791, 792]
                 case _: return [701]
 
-        mock_db.set_port(lambda x: (True,)) # input is port
-        mock_db.set_child_port_codes(lambda x: ["ABCDE"]) # only port in a_region is ABCDE
-        mock_db.set_child_region_slugs(lambda x: []) # not child regions in region
-        mock_db.set_daily_prices(daily_prices_func)
+        mock_db.get_daily_prices = MagicMock(side_effect=daily_prices_func)
+        mock_db.get_child_port_codes = MagicMock(return_value=["ABCDE"])
+        mock_db.get_child_region_slugs = MagicMock(return_value=[])
+        mock_db.get_port = MagicMock(return_value=(True,))
 
         # act
         response = app.test_client().get(f'/rates?date_from={start_date}&date_to={end_date}&origin={origin_region}&destination={destination_port}')
@@ -118,10 +116,10 @@ class TestServer(unittest.TestCase):
                 case "ABCDE", "PQRST", "2016-01-03": return [789, 790, 791, 792]
                 case _: return []
 
-        mock_db.set_port(lambda x: (True,)) # input is port (not used)
-        mock_db.set_child_port_codes(child_ports_func)
-        mock_db.set_child_region_slugs(child_region_func)
-        mock_db.set_daily_prices(daily_prices_func)
+        mock_db.get_daily_prices = MagicMock(side_effect=daily_prices_func)
+        mock_db.get_child_port_codes = MagicMock(side_effect=child_ports_func)
+        mock_db.get_child_region_slugs = MagicMock(side_effect=child_region_func)
+        mock_db.get_port = MagicMock(return_value=(True,))
 
         # act
         response = app.test_client().get(f'/rates?date_from={start_date}&date_to={end_date}&origin={origin_region}&destination={destination_region}')
@@ -138,10 +136,7 @@ class TestServer(unittest.TestCase):
         start_date="2016-01-01"
         end_date = "2016-01-03"
 
-        mock_db.set_port(lambda x: (True,) if x == "ABCDE" else None) # ABCDE is only acceptable port
-        # mock_db.set_child_port_codes() # not used
-        # mock_db.set_child_region_slugs() # not used
-        # mock_db.set_daily_prices() # not used
+        mock_db.get_port = MagicMock(side_effect=lambda x: (True,) if x == "ABCDE" else None)
 
         # act
         response = app.test_client().get(f'/rates?date_from={start_date}&date_to={end_date}&origin={origin_port}&destination={destination_port}')
@@ -158,10 +153,7 @@ class TestServer(unittest.TestCase):
         start_date="2016-01-01"
         end_date = "2016-01-03"
 
-        mock_db.set_port(lambda x: (True,) if x == "ABCDE" else None) # ABCDE is only acceptable port
-        # mock_db.set_child_port_codes() # not used
-        # mock_db.set_child_region_slugs() # not used
-        # mock_db.set_daily_prices() # not used
+        mock_db.get_port = MagicMock(side_effect=lambda x: (True,) if x == "ABCDE" else None)
 
         # act
         response = app.test_client().get(f'/rates?date_from={start_date}&date_to={end_date}&origin={origin_port}&destination={destination_port}')

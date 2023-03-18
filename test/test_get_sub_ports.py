@@ -1,10 +1,11 @@
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 from server import get_sub_ports
-from test.mock_database import MockDB
+from database import DB
 
-mock_db = MockDB()
+DB.__init__ = lambda x: None
+mock_db = DB()
 
 
 @patch('server.db', mock_db)
@@ -15,8 +16,8 @@ class TestGetSubPorts(unittest.TestCase):
         region = 'a_region'
         port = "ABCDE"
 
-        mock_db.set_child_port_codes(lambda x: [port])
-        mock_db.set_child_region_slugs(lambda x: [])
+        mock_db.get_child_port_codes = MagicMock(return_value=[port])
+        mock_db.get_child_region_slugs = MagicMock(return_value=[])
 
         # act
         res = get_sub_ports(region)
@@ -29,8 +30,8 @@ class TestGetSubPorts(unittest.TestCase):
         region = 'a_region'
         ports = ["ABCDE", "DEFGH"]
 
-        mock_db.set_child_port_codes(lambda x: ports)
-        mock_db.set_child_region_slugs(lambda x: [])
+        mock_db.get_child_port_codes = MagicMock(return_value=ports)
+        mock_db.get_child_region_slugs = MagicMock(return_value=[])
 
         # act
         res = get_sub_ports(region)
@@ -59,8 +60,8 @@ class TestGetSubPorts(unittest.TestCase):
                 case 'b_region':
                     return []
 
-        mock_db.set_child_port_codes(child_ports_func)
-        mock_db.set_child_region_slugs(child_regions_func)
+        mock_db.get_child_port_codes = MagicMock(side_effect=child_ports_func)
+        mock_db.get_child_region_slugs = MagicMock(side_effect=child_regions_func)
 
         # act
         res = get_sub_ports(region)
@@ -114,8 +115,8 @@ class TestGetSubPorts(unittest.TestCase):
                 case 'f_region':
                     return f_sub_regions
 
-        mock_db.set_child_port_codes(child_ports_func)
-        mock_db.set_child_region_slugs(child_regions_func)
+        mock_db.get_child_port_codes = MagicMock(side_effect=child_ports_func)
+        mock_db.get_child_region_slugs = MagicMock(side_effect=child_regions_func)
 
         # act
         res = get_sub_ports(region)
