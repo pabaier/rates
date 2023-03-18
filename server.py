@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 
 from dotenv import load_dotenv
 from flask import Flask, request
+from werkzeug.datastructures import MultiDict
 
 from database import DB
 
@@ -63,6 +64,27 @@ def create_date_range(date_from: str, date_to: str) -> dict:
     return {"error": False, "value": dates}
 
 
+def process_query_params(args: MultiDict[str, str]) -> (str, str, str, str, str):
+    """
+    processes the request's query parameters
+    :param args: query parameters
+    :return: errors, date_from value, date_to value, origin value, destination value
+    """
+    err = []
+    date_from = args.get('date_from')
+    if not date_from:
+        err.append('date_from')
+    date_to = args.get('date_to')
+    if not date_to:
+        err.append('date_to')
+    origin = args.get('origin')
+    if not origin:
+        err.append('origin')
+    destination = args.get('destination')
+    if not destination:
+        err.append('destination')
+    return err, date_from, date_to, origin, destination
+
 @app.route("/rates")
 def rates():
     """
@@ -75,19 +97,10 @@ def rates():
     Get prices between each origin and destination port
     """
 
-    # get query params
-    date_from = request.args.get('date_from')
-    if not date_from:
-        return {"error": "date_from param required"}, 400
-    date_to = request.args.get('date_to')
-    if not date_to:
-        return {"error": "date_to param required"}, 400
-    origin = request.args.get('origin')
-    if not origin:
-        return {"error": "origin param required"}, 400
-    destination = request.args.get('destination')
-    if not destination:
-        return {"error": "destination param required"}, 400
+    query_err, date_from, date_to, origin, destination = process_query_params(request.args)
+    if query_err:
+        return {"error": f"{query_err} params required"}, 400
+
 
     # get date range
     dates_range = create_date_range(date_from, date_to)
