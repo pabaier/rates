@@ -1,6 +1,6 @@
 import unittest
 
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, call
 from database import DB
 from server import app
 
@@ -32,12 +32,15 @@ class TestServer(unittest.TestCase):
 
         # assert
         expected = [{'average_price': 122, 'day': '2016-01-01'}, {'average_price': None, 'day': '2016-01-02'}, {'average_price': 790, 'day': '2016-01-03'}]
+        calls = [call(origin_port, destination_port, start_date), call(origin_port, destination_port, '2016-01-02'), call(origin_port, destination_port, end_date)]
+        mock_db.get_daily_prices.assert_has_calls(calls, any_order=False)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json, expected)
 
     def test_origin_port_and_dest_region(self):
         # arrange
         origin_port = "ABCDE"
+        dest_port = "VWXYZ"
         destination_region = "a_region"
         start_date="2016-01-01"
         end_date = "2016-01-03"
@@ -50,7 +53,7 @@ class TestServer(unittest.TestCase):
                 case _: return [701]
 
         mock_db.get_daily_prices = MagicMock(side_effect=daily_prices_func)
-        mock_db.get_child_port_codes = MagicMock(return_value=["VWXYZ"])
+        mock_db.get_child_port_codes = MagicMock(return_value=[dest_port])
         mock_db.get_child_region_slugs = MagicMock(return_value=[])
         mock_db.get_port = MagicMock(return_value=(True,))
 
@@ -59,6 +62,12 @@ class TestServer(unittest.TestCase):
 
         # assert
         expected = [{'average_price': 122, 'day': '2016-01-01'}, {'average_price': None, 'day': '2016-01-02'}, {'average_price': 790, 'day': '2016-01-03'}]
+        prices_calls = [call(origin_port, dest_port, start_date), call(origin_port, dest_port, '2016-01-02'), call(origin_port, dest_port, end_date)]
+        mock_db.get_daily_prices.assert_has_calls(prices_calls, any_order=False)
+        mock_db.get_child_port_codes.assert_called_once_with(destination_region)
+        mock_db.get_child_region_slugs.assert_called_once_with(destination_region)
+        mock_db.get_port.assert_called_once_with(origin_port)
+
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json, expected)
 
