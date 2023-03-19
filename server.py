@@ -62,7 +62,7 @@ def create_date_range(date_from: str, date_to: str) -> dict:
     return {"error": False, "value": dates}
 
 
-def process_query_params(args: MultiDict[str, str]) -> (str, str, str, str, str):
+def process_query_params(args: MultiDict[str, str]) -> tuple[list[str], str | None, str | None, str | None, str | None]:
     """
     processes the request's query parameters
     :param args: query parameters

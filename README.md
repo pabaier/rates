@@ -34,6 +34,7 @@ curl --request GET \
 * this solution assumes a region and port can have only one parent region
   (a safe assumption given they are primary keys in their tables)
 * it also distinguishes between port codes and region slugs by checking `isupper()`, where `True` indicates port
+* origin and destination fields are case-sensitive (ports must be uppercase, regions must be non-uppercase)
 * indexes should be added in the database (these indexes have been added to the `rates.sql` file)
   * on the `parent_slug` field on the `ports` table
   * on the `parent_slug` field on the `regions` table
