@@ -1,5 +1,6 @@
 import os
 from datetime import datetime, timedelta
+from functools import reduce
 
 from dotenv import load_dotenv
 from flask import Flask, request
@@ -46,18 +47,19 @@ def create_date_range(date_from: str, date_to: str) -> dict:
     :param date_to: end date
     :return: dictionary of {error: bool, value}
     """
-    try:
-        date_start = datetime.strptime(date_from, '%Y-%m-%d')
-    except ValueError:
-        return {"error": True, "value": "date_from incorrect range or format. Make sure it is formatted YYYY-MM-DD"}
-    except Exception as e:
-        return {"error": True, "value": f"date_from error: {str(e)}"}
-    try:
-        date_end = datetime.strptime(date_to, '%Y-%m-%d')
-    except ValueError:
-        return {"error": True, "value": "date_to incorrect range or format. Make sure it is formatted YYYY-MM-DD"}
-    except Exception as e:
-        return {"error": True, "value": f"date_to error: {str(e)}"}
+    fields = ['date_from', 'date_to']
+    output = []
+    for i, date in enumerate([date_from, date_to]):
+        try:
+            date_time = datetime.strptime(date, '%Y-%m-%d')
+        except ValueError:
+            return {"error": True,
+                    "value": f"{fields[i]} incorrect range or format. Make sure it is formatted YYYY-MM-DD"}
+        except Exception as e:
+            return {"error": True, "value": f"{fields[i]} error: {str(e)}"}
+        output.append(date_time)
+    date_start, date_end = output
+    # date_end - date_start -> timedelta
     dates = [date_start + timedelta(days=days) for days in range((date_end - date_start).days + 1)]
     return {"error": False, "value": dates}
 
@@ -82,6 +84,17 @@ def process_query_params(args: MultiDict[str, str]) -> tuple[list[str], str | No
     if not destination:
         err.append('destination')
     return err, date_from, date_to, origin, destination
+
+
+def price_accumulator(origin_ports, destination_ports):
+    def a(acc, val):
+        org, dest, price, count = val
+        if org in origin_ports and dest in destination_ports:
+            acc[0] += price
+            acc[1] += count
+        return acc
+
+    return a
 
 
 @app.route("/rates")
@@ -128,15 +141,9 @@ def rates():
     for date in dates_range['value']:
         # for any given day, add up all the prices between all the origin and destination ports
         date_string = date.strftime('%Y-%m-%d')
-        prices = []
-        for origin_port in origin_ports:
-            for destination_port in destination_ports:
-                prices += db.get_daily_prices(origin_port, destination_port, date_string)
-        results.append({
-            "day": date_string,
-            "average_price": None if len(prices) < 3 else round(sum(prices) / len(prices))
-        })
-
+        all_prices_by_day = db.get_daily_prices(date_string)
+        price_sum, count_sum = reduce(price_accumulator(origin_ports, destination_ports), all_prices_by_day, [0, 0])
+        results.append({"day": date_string, "average_price": None if count_sum < 3 else round(price_sum / count_sum)})
     return results
 
 

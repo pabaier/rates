@@ -24,14 +24,18 @@ class DB:
         cur.close()
         return [region[0] for region in regions]
 
-    def get_daily_prices(self, orig_code: str, dest_code: str, day: str) -> [int]:
+
+    def get_daily_prices(self, day: str) -> [int]:
         cur = self.conn.cursor()
-        sql = """SELECT p.price FROM prices p
-                 WHERE p.orig_code = %s AND p.dest_code = %s AND p."day" = %s;"""
-        cur.execute(sql, (orig_code, dest_code, day))
+        sql = """
+            select x.orig_code, x.dest_code, sum(x.price), count(x.price)  FROM prices x
+            where x."day" = %s
+            group by x.orig_code, x.dest_code
+            """
+        cur.execute(sql, (day,))
         prices = cur.fetchall()
         cur.close()
-        return [price[0] for price in prices]
+        return prices
 
     def get_port(self, orig_code: str) -> tuple:
         cur = self.conn.cursor()
